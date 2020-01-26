@@ -14,7 +14,23 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Override point for customization after application launch
+        
+        let fileManager = FileManager.default
+        do {
+            let documnetsDir = try fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+            
+            let directoryUrl = documnetsDir.appendingPathComponent("files")
+            try fileManager.createDirectory(atPath: directoryUrl.path, withIntermediateDirectories: true, attributes: nil)
+            
+            let fileUrl = directoryUrl.appendingPathComponent("readme.txt")
+            if !fileManager.fileExists(atPath: fileUrl.path) {
+                try "Put files here for serving".write(toFile: fileUrl.path, atomically: true, encoding: .utf8)
+            }
+        } catch {
+            
+        }
+        application.isIdleTimerDisabled = true
         return true
     }
 
