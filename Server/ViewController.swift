@@ -26,7 +26,7 @@ class ViewController: UIViewController {
         do {
             let documnetsDir = try fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
             
-            server["/:path"] = directoryBrowser(documnetsDir.path)
+            server["/:path"] = directoryBrowserNew(documnetsDir.path)
             try server.start()
             
             guard let ip = getWiFiAddress() else {
@@ -44,6 +44,50 @@ class ViewController: UIViewController {
     }
 
 
+}
+
+public func directoryBrowserNew(_ dir: String) -> ((HttpRequest) -> HttpResponse) {
+    return { r in
+        guard let (_, value) = r.params.first else {
+            return HttpResponse.notFound
+        }
+        guard let filePath = (dir + String.pathSeparator + value).removingPercentEncoding else { return .notFound }
+        do {
+            guard try filePath.exists() else {
+                return .notFound
+            }
+            if try filePath.directory() {
+                var files = try filePath.files()
+                files.sort(by: {$0.lowercased() < $1.lowercased()})
+                return scopes {
+                    html {
+                        body {
+                            table(files) { file in
+                                tr {
+                                    td {
+                                        a {
+                                            href = r.path + "/" + file
+                                            inner = file
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    }(r)
+            } else {
+                guard let file = try? filePath.openForReading() else {
+                    return .notFound
+                }
+                return .raw(200, "OK", [:], { writer in
+                    try? writer.write(file)
+                    file.close()
+                })
+            }
+        } catch {
+            return HttpResponse.internalServerError
+        }
+    }
 }
 
 // Return IP address of WiFi interface (en0) as a String, or `nil`
